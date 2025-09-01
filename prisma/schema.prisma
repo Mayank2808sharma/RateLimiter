@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model API_Keys {
+  id                     String   @id @default(cuid())
+  key_value              String   @unique
+  app_name               String
+  rate_limit_per_minute  Int      @default(1000)
+  daily_quota            Int      @default(100000)
+  burst_per_minute       Int      @default(0) // additional burst over per-minute limit
+  is_active              Boolean  @default(true)
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  endpointLimits Endpoint_Limits[]
+  windows        Rate_Limit_Windows[]
+  logs           Request_Logs[]
+}
+
+enum WindowType {
+  MINUTE
+  DAY
+}
+
+model Rate_Limit_Windows {
+  id           String     @id @default(cuid())
+  api_key_id   String
+  window_start DateTime
+  requests_count Int
+  window_type  WindowType
+  API_Keys     API_Keys   @relation(fields: [api_key_id], references: [id])
+
+  @@unique([api_key_id, window_start, window_type])
+  @@index([api_key_id, window_type, window_start])
+}
+
+model Request_Logs {
+  id          String   @id @default(cuid())
+  api_key_id  String
+  endpoint    String
+  ip_address  String
+  timestamp   DateTime @default(now())
+  was_allowed Boolean
+  API_Keys    API_Keys @relation(fields: [api_key_id], references: [id])
+
+  @@index([api_key_id, timestamp])
+  @@index([ip_address, timestamp])
+  @@index([was_allowed, timestamp])
+}
+
+model Blocked_IPs {
+  id            String   @id @default(cuid())
+  ip_address    String   @unique
+  blocked_until DateTime
+  reason        String?
+  created_at    DateTime @default(now())
+
+  @@index([blocked_until])
+}
+
+/// Optional table to support endpoint-specific overrides
+model Endpoint_Limits {
+  id                     String   @id @default(cuid())
+  api_key_id             String
+  endpoint               String
+  rate_limit_per_minute  Int?
+  daily_quota            Int?
+  burst                  Int?     // extra burst capacity per minute for this endpoint
+  API_Keys               API_Keys @relation(fields: [api_key_id], references: [id])
+
+  @@unique([api_key_id, endpoint])
+}
