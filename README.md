@@ -105,16 +105,3 @@ Atomicity across multiple instances is preserved by Redis operations executed in
 
 ---
 
-## Testing
-
-After seeding, try:
-
-```bash
-curl -X POST http://localhost:8080/api/check-limit   -H 'content-type: application/json'   -d '{"endpoint":"/v1/search","api_key":"demo-key-123","ip":"1.2.3.4"}'
-```
-
-If allowed, then record:
-
-```bash
-curl -X POST http://localhost:8080/api/record-request   -H 'content-type: application/json'   -d '{"endpoint":"/v1/search","api_key":"demo-key-123","ip":"1.2.3.4"}'
-```
